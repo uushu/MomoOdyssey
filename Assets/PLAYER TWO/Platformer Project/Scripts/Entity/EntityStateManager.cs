@@ -12,7 +12,8 @@ namespace PLAYER_TWO.Platformer_Project.Scripts.Entity
     {
         //状态管理相关事件集合（进入状态、退出状态、状态切换等）
         //具体定义在EntityStateManagerEvent里
-        
+        public EntityStateManagerEvents events;
+
     }
 
     /// <summary>
@@ -27,8 +28,16 @@ namespace PLAYER_TWO.Platformer_Project.Scripts.Entity
         //状态字典，键为状态类型，值为对应状态实例，方便快速查找
         protected Dictionary<Type, EntityState<T>> m_states = new Dictionary<Type, EntityState<T>>();
         
-        //当前出入某个状态的属性
+        //当前激活的状态实例
         public EntityState<T> current { get; protected set; }
+        
+        //上一个状态实例
+        public EntityState<T> last { get; protected set; }
+        
+        //当前状态管理器关联的实体对象实例
+        public T entity { get; protected set; }
+
+        protected virtual void InitializeEntity() => entity = GetComponent<T>();
         
         /// <summary>
         /// 生命周期Start，负责初始化实体和状态
@@ -36,6 +45,7 @@ namespace PLAYER_TWO.Platformer_Project.Scripts.Entity
         protected void Start()
         {
             InitializeStates();
+            InitializeEntity();
         }
         /// <summary>
         /// 抽象方法，子类必须实现，用于返回所以状态实例的列表
@@ -65,6 +75,55 @@ namespace PLAYER_TWO.Platformer_Project.Scripts.Entity
             {
                 current = m_list[0];
             }
+        }   
+        
+       
+        
+        /// <summary>
+        /// 每帧调用，用于更新当前状态的逻辑
+        /// </summary>
+        public virtual void Step()
+        {
+            //确保当前状态存在且游戏暂未停止
+            if (current != null && Time.timeScale > 0)
+            {
+                current.Step(entity);
+            }
         }
+        /// <summary>
+        /// 根据状态类型泛型参数来切换状态
+        /// </summary>
+        /// <typeparam name="Tstate"></typeparam>
+        public virtual void Change<Tstate>() where Tstate : EntityState<T>
+        {
+            var type=typeof(Tstate);
+            if (m_states.ContainsKey(type))
+            {
+                Change(m_states[type]);
+            }
+        }
+        /// <summary>
+        /// 切换当前状态
+        /// 执行状态退出与进入回调，并处罚相关事件
+        /// </summary>
+        /// <param name="state">目标状态实例</param>
+        public virtual void Change(EntityState<T> state)
+        {
+            if (state != null && Time.timeScale > 0)
+            {
+                if (current != null)
+                {
+                    current.Exit(entity);
+                    events.onExit.Invoke(current.GetType());
+                    last = current;
+                }
+            }
+
+            current = state;
+            current.Enter(entity);
+            events.onEnter.Invoke(current.GetType());
+            events.onChange?.Invoke();
+        }
+        
     }
 }

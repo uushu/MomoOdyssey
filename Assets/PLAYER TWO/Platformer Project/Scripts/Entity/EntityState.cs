@@ -80,8 +80,17 @@ namespace PLAYER_TWO.Platformer_Project.Scripts.Entity
         /// <param name="entity">当前所属实体对象</param>
         /// <param name="other">其他碰到的物体</param>
         public abstract void OnContact(T entity, Collider other);
+        
+        /// <summary>
+        /// 从类型名称字符串创建实体状态对象
+        /// </summary>
+        /// <typeparam name="T">实体类型</typeparam>
+        /// <param name="typeName">要创建的实体状态的完全限定类型名称</param>
+        /// <returns>新创建的实体状态对象</returns>
         public static EntityState<T> CreateFromString(string typeName)
         {
+            // 使用System.Activator.CreateInstance和System.Type.GetType
+            // 根据提供的类型名称字符串创建并返回指定类型的实例
             return (EntityState<T>)System.Activator.CreateInstance(System.Type.GetType(typeName));
         }
         
